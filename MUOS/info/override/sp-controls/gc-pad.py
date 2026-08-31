@@ -325,12 +325,16 @@ def main():
                     syn(ufd)
                     if MENU_KEYS:
                         if value == 1:
+                            # Deliberate taps: 0.15s press so a frame-sampled
+                            # game can't miss it, 0.6s between keys so the
+                            # first key's menu finishes opening (menu_tap.sh's
+                            # proven flow used 0.5s).
                             for i, mk in enumerate(MENU_KEYS):
                                 if i:
-                                    time.sleep(0.4)
+                                    time.sleep(0.6)
                                 emit(ufd, EV_KEY, mk, 1)
                                 syn(ufd)
-                                time.sleep(0.08)
+                                time.sleep(0.15)
                                 emit(ufd, EV_KEY, mk, 0)
                                 syn(ufd)
                     else:
