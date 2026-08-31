@@ -316,30 +316,36 @@ def main():
                     emit(ufd, EV_KEY, code, value)
                     syn(ufd)
 
+                elif etype == EV_KEY and code in (P_MENU, P_GUIDE) and MENU_KEYS:
+                    # Port with a menu key sequence: emit ONLY the sequence.
+                    # The pad sends guide (312) when MENU is held a beat; our
+                    # mapping exposes 312 as SDL guide, and gptokeyb kills
+                    # the app on guide+start - which the synthesized Start
+                    # tap would complete (verified on-device: 312 held +
+                    # 311 tap = instant quit). So both MENU codes are
+                    # swallowed here, never forwarded.
+                    if code == P_MENU and value == 1:
+                        # Deliberate taps: 0.15s press so a frame-sampled
+                        # game can't miss it, 0.6s between keys so the
+                        # first key's menu finishes opening (menu_tap.sh's
+                        # proven flow used 0.5s).
+                        for i, mk in enumerate(MENU_KEYS):
+                            if i:
+                                time.sleep(0.6)
+                            emit(ufd, EV_KEY, mk, 1)
+                            syn(ufd)
+                            time.sleep(0.15)
+                            emit(ufd, EV_KEY, mk, 0)
+                            syn(ufd)
+
                 elif etype == EV_KEY and code == P_MENU:
-                    # MENU tap -> the game's own menu: either the port's
-                    # key sequence (GCPAD_MENU_KEYS) or a guide press,
-                    # which the launch script binds game-side. 354 is
-                    # passed through regardless.
+                    # MENU tap -> guide, which the launch script binds to
+                    # the game's own menu. (Raw 312 from a long MENU hold
+                    # still forwards via the button branch below - holding
+                    # MENU and pressing Start is gptokeyb's force-quit.)
                     emit(ufd, EV_KEY, P_MENU, value)
+                    emit(ufd, EV_KEY, P_GUIDE, value)
                     syn(ufd)
-                    if MENU_KEYS:
-                        if value == 1:
-                            # Deliberate taps: 0.15s press so a frame-sampled
-                            # game can't miss it, 0.6s between keys so the
-                            # first key's menu finishes opening (menu_tap.sh's
-                            # proven flow used 0.5s).
-                            for i, mk in enumerate(MENU_KEYS):
-                                if i:
-                                    time.sleep(0.6)
-                                emit(ufd, EV_KEY, mk, 1)
-                                syn(ufd)
-                                time.sleep(0.15)
-                                emit(ufd, EV_KEY, mk, 0)
-                                syn(ufd)
-                    else:
-                        emit(ufd, EV_KEY, P_GUIDE, value)
-                        syn(ufd)
 
                 elif etype == EV_KEY and code in BUTTONS:
                     if code == P_START:
