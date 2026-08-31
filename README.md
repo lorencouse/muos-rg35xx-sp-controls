@@ -42,8 +42,12 @@ psx/Ape Escape (USA)=stick
 ```
 
 Only folders with an override script are affected (`n64 psp dreamcast psx`);
-copy `n64.sh` to `<folder>.sh` for another one. PortMaster content is not
-covered — muOS 2601.1 fixes the toggle for ports itself.
+copy `n64.sh` to `<folder>.sh` for another one. PortMaster ports are covered
+separately by `gc-pad.py` (in `MUOS/info/override/sp-controls/`): a uinput
+translator that turns the single D-pad into three channels — rest = left
+stick, hold SELECT = real D-pad, hold R2 = right stick — with buttons 1:1 and
+MENU opening the game's own menu. Wire it into a port's launch script (see
+the header comments in `gc-pad.py`) and `touch <gamedir>/gc-pad.enable`.
 
 Don't like the N64 layout? Set `mupen64plus-alt-map` to `False` in
 `MUOS/init/30-sp-controls.sh` (or remove that line and change it in
