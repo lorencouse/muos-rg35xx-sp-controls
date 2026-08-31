@@ -56,5 +56,20 @@ CFG="$MUOS_SHARE_DIR/info/config"
 SET_OPT "$CFG/Mupen64Plus-Next/Mupen64Plus-Next.opt" "mupen64plus-alt-map" "True"
 SET_OPT "$CFG/PCSX-ReARMed/PCSX-ReARMed.opt" "pcsx_rearmed_pad1type" "analog"
 
+# Safety net for gc-pad.py: it zeroes the idle power settings for the
+# session (muhotkey is input-blind under its grab and would otherwise
+# mute/dim/suspend mid-game) and restores them on exit. If it was ever
+# SIGKILLed the zeros persist on the rootfs; restore from its snapshot.
+IDLE_SAVE="$MUOS_STORE_DIR/info/override/sp-controls/idle-settings.saved"
+if [ -f "$IDLE_SAVE" ]; then
+	while IFS='=' read -r K V; do
+		case "$K" in idle_display | idle_sleep | idle_mute)
+			printf '%s' "$V" >"/opt/muos/config/settings/power/$K" &&
+				echo "restored settings/power/$K=$V (stale gc-pad snapshot)"
+		esac
+	done <"$IDLE_SAVE"
+	rm -f "$IDLE_SAVE"
+fi
+
 echo "=== done ==="
 exit 0
