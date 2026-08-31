@@ -12,6 +12,12 @@
 # Modes come from sp-controls/dpad.conf next to this file:
 #   n64=stick                 whole folder
 #   psx/Ape Escape (USA)=stick  one game (muOS's friendly name, no extension)
+#   psp=stick+select-dpad     stick, but holding SELECT gives the real
+#                             D-pad (select-dpad.py watcher, killed on exit)
+#   dreamcast=dpad+select-stick  the inverse (rest on real D-pad, stick while
+#                                SELECT held) — flycast vl crosses the
+#                                channels in-core, so this feels like
+#                                stick+select-dpad elsewhere
 # Folders with no entry keep the plain D-pad.
 
 . /opt/muos/script/var/func.sh
@@ -34,8 +40,12 @@ MODE="$(CONF_GET "$FOLDER/$NAME")"
 
 if [ -f "$DPAD_FILE" ]; then
 	case "$MODE" in
-		stick)
+		stick*)
 			echo 2 >"$DPAD_FILE"
+			RUMBLE "$(GET_VAR "device" "board/rumble")" .1
+			;;
+		dpad+select-stick)
+			echo 0 >"$DPAD_FILE"
 			RUMBLE "$(GET_VAR "device" "board/rumble")" .1
 			;;
 		*) echo 0 >"$DPAD_FILE" ;;
@@ -68,4 +78,18 @@ printf '%s  %s/%s  mode=%s  exec=%s\n' "$(date '+%F %T')" "$FOLDER" "$NAME" "${M
 	printf '%s  ERROR: no launcher for core "%s" (system "%s")\n' "$(date '+%F %T')" "$CORE" "$ASSIGN" >>"$LOG"
 	exit 1
 }
+
+# stick+select-dpad: watcher flips to the real D-pad while SELECT is held.
+# exec below keeps our PID, so the watcher follows it and dies with the game.
+case "$MODE" in
+	*+select-dpad)
+		WATCHER="$(dirname "$CONF")/select-dpad.py"
+		[ -f "$WATCHER" ] && /usr/bin/python3 "$WATCHER" $$ >/dev/null 2>&1 &
+		;;
+	dpad+select-stick)
+		WATCHER="$(dirname "$CONF")/select-dpad.py"
+		[ -f "$WATCHER" ] && /usr/bin/python3 "$WATCHER" $$ --invert >/dev/null 2>&1 &
+		;;
+esac
+
 exec "$EXEC" "$NAME" "$CORE" "$ROM"
